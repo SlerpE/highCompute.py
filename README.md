@@ -83,12 +83,13 @@
 ## ⚙️ Конфигурация
 
 1.  **Создайте файл `.env`** в корневой папке проекта.
-2.  **Добавьте в `.env` переменную `LLM_API_ENDPOINT` и `LLM_MODEL`**, указав полный URL вашего локального LLM API эндпоинта, который совместим с OpenAI Chat Completions API. А также имя вашей LLM-модели.
+2.  **Добавьте в `.env` переменную `LLM_API_ENDPOINT`, `LLM_MODEL` и `LLM_API_KEY`**, указав полный URL вашего локального LLM API эндпоинта, который совместим с OpenAI Chat Completions API. А также имя вашей LLM-модели и API-ключ.
 
     **Пример содержимого файла `.env`:**
     ```dotenv
-    LLM_API_ENDPOINT=http://127.0.0.1:8080/v1/chat/completions
-    LLM_MODEL = "thudm/glm-4-32b"
+    LLM_API_ENDPOINT=http://192.168.2.33:8000/v1/chat/completions
+    LLM_API_KEY="token-abc123"
+    LLM_MODEL ="AlexBefest/Gemma3-27B"
     ```
     *   Убедитесь, что ваш LLM сервер действительно слушает этот адрес и путь.
 
