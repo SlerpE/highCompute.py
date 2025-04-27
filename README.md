@@ -6,7 +6,14 @@ A single Python file that connects via the OpenAI Chat Completions API, giving y
 
 This is a simple Gradio-based web application providing an interface for interacting with a locally hosted Large Language Model (LLM). The key feature is the ability to select a "Computation Level," which determines the strategy for processing user queries—ranging from direct responses to multi-level task decomposition for obtaining more structured and comprehensive answers to complex queries.  
 
-![image](https://github.com/user-attachments/assets/8886405d-9a49-41ca-89d1-900fdc136d8d)  
+
+
+https://github.com/user-attachments/assets/8cc0fa3d-69fa-4183-8d6b-004ea934fd78
+
+![Снимок экрана_20250427_174119](https://github.com/user-attachments/assets/b70d8c5d-911a-4c49-ab37-b4ec9925086e)
+
+
+
 
 The application connects to your specified LLM API endpoint, compatible with the OpenAI Chat Completions API format.  
 
