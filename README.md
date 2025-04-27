@@ -58,8 +58,8 @@
 
 1.  **Клонируйте репозиторий:**
     ```bash
-    git clone https://github.com/your-username/your-repo-name.git # Замените на URL вашего репозитория
-    cd your-repo-name
+    git clone https://github.com/AlexBefest/highCompute.py.git # Замените на URL вашего репозитория
+    cd highCompute.py
     ```
 
 2.  **Создайте и активируйте виртуальное окружение (рекомендуется):**
@@ -75,13 +75,7 @@
         ```
 
 3.  **Установите зависимости:**
-    Создайте файл `requirements.txt` со следующим содержимым:
-    ```txt
-    gradio
-    requests
-    python-dotenv
-    ```
-    Затем выполните установку:
+    Выполните установку python-зависимостей:
     ```bash
     pip install -r requirements.txt
     ```
@@ -89,15 +83,13 @@
 ## ⚙️ Конфигурация
 
 1.  **Создайте файл `.env`** в корневой папке проекта.
-2.  **Добавьте в `.env` переменную `LLM_API_ENDPOINT`**, указав полный URL вашего локального LLM API эндпоинта, который совместим с OpenAI Chat Completions API.
+2.  **Добавьте в `.env` переменную `LLM_API_ENDPOINT` и `LLM_MODEL`**, указав полный URL вашего локального LLM API эндпоинта, который совместим с OpenAI Chat Completions API. А также имя вашей LLM-модели.
 
     **Пример содержимого файла `.env`:**
     ```dotenv
-    # Замените на реальный URL вашего локального LLM API
     LLM_API_ENDPOINT=http://127.0.0.1:8080/v1/chat/completions
+    LLM_MODEL = "thudm/glm-4-32b"
     ```
-
-    *   Если вы не создадите файл `.env` или не укажете `LLM_API_ENDPOINT`, будет использоваться значение по умолчанию: `http://127.0.0.1:8080/v1/chat/completions`.
     *   Убедитесь, что ваш LLM сервер действительно слушает этот адрес и путь.
 
 ## ▶️ Запуск приложения
@@ -105,7 +97,7 @@
 1.  **Убедитесь, что ваш локальный LLM сервер запущен** и доступен по URL, указанному в файле `.env` (или по адресу по умолчанию).
 2.  **Запустите Python скрипт:**
     ```bash
-    python your_script_name.py # Замените your_script_name.py на имя вашего файла (например, app.py)
+    python highCompute.py
     ```
 3.  **Откройте веб-интерфейс:** В консоли вы увидите сообщение от Gradio с локальным URL, обычно `http://127.0.0.1:7860`. Откройте этот URL в вашем веб-браузере.
 
