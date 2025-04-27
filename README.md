@@ -59,7 +59,7 @@ The core idea is that for complex tasks, a simple direct query to the LLM may no
 
 1.  **Clone the repository:**  
     ```bash  
-    git clone https://github.com/AlexBefest/highCompute.py.git # Replace with your repository URL  
+    git clone https://github.com/AlexBefest/highCompute.py.git
     cd highCompute.py  
     ```  
 
@@ -189,7 +189,7 @@ The core idea is that for complex tasks, a simple direct query to the LLM may no
 
 1.  **Клонируйте репозиторий:**
     ```bash
-    git clone https://github.com/AlexBefest/highCompute.py.git # Замените на URL вашего репозитория
+    git clone https://github.com/AlexBefest/highCompute.py.git
     cd highCompute.py
     ```
 
