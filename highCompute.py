@@ -4,15 +4,17 @@ import json
 import os
 import re
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
 DEFAULT_ENDPOINT = "http://127.0.0.1:8080/v1/chat/completions"
 DEFAULT_LLM_MODEL = "local-model"
+DEFAULT_API_KEY = None
 
 LOCAL_API_ENDPOINT = os.getenv("LLM_API_ENDPOINT", DEFAULT_ENDPOINT)
 LLM_MODEL = os.getenv("LLM_MODEL", DEFAULT_LLM_MODEL)
-
+LLM_API_KEY = os.getenv("LLM_API_KEY", DEFAULT_API_KEY)
 
 def call_llm(prompt, chat_history_gradio=None, temperature=0.7, top_p=None, top_k=None):
     messages = []
@@ -37,7 +39,13 @@ def call_llm(prompt, chat_history_gradio=None, temperature=0.7, top_p=None, top_
     payload = json.dumps(payload_dict)
     headers = {'Content-Type': 'application/json; charset=utf-8'}
 
-    print(f"Sending request to {LOCAL_API_ENDPOINT} with model '{LLM_MODEL}' and payload: {payload}")
+    if LLM_API_KEY:
+        headers['Authorization'] = f'Bearer {LLM_API_KEY}'
+        print(f"Sending request to {LOCAL_API_ENDPOINT} using API Key.")
+    else:
+        print(f"Sending request to {LOCAL_API_ENDPOINT} without API Key.")
+
+    print(f"Model: '{LLM_MODEL}', Payload: {payload[:200]}...")
 
     try:
         response = requests.post(LOCAL_API_ENDPOINT, headers=headers, data=payload.encode('utf-8'), timeout=36000)
@@ -70,12 +78,14 @@ def call_llm(prompt, chat_history_gradio=None, temperature=0.7, top_p=None, top_
         return f"An unexpected error occurred: {e}"
 
 def low_compute(user_input, history, temperature, top_p, top_k):
+    yield "[Status] Sending request directly to LLM..."
     print("[Low Mode] Sending LLM request...")
     response = call_llm(user_input, chat_history_gradio=history, temperature=temperature, top_p=top_p, top_k=top_k)
     print("[Low Mode] Response received.")
-    return response
+    yield response
 
 def medium_compute(user_input, history, temperature, top_p, top_k):
+    yield "[Status] Starting task decomposition (1 level)..."
     print("[Medium Mode] Starting task decomposition...")
     control_temp = max(0.1, temperature * 0.5)
     decompose_prompt = f'Original task: "{user_input}". Break it down into logical subtasks needed to solve it (numbered list). Be concise.'
@@ -83,10 +93,13 @@ def medium_compute(user_input, history, temperature, top_p, top_k):
     subtasks = re.findall(r"^\s*\d+\.\s*(.*)", subtasks_text, re.MULTILINE)
 
     if not subtasks:
+        yield "[Status] Decomposition failed or no subtasks found. Answering directly..."
         print("[Medium Mode] Decomposition failed or returned no numbered points. Responding directly...")
         response = call_llm(user_input, chat_history_gradio=history, temperature=temperature, top_p=top_p, top_k=top_k)
-        return response
+        yield response
+        return
 
+    yield f"[Status] Task divided into {len(subtasks)} subtasks. Solving them one by one..."
     print(f"[Medium Mode] Task divided into {len(subtasks)} subtasks.")
     subtask_results = []
     temp_history_medium = history.copy() if history else []
@@ -94,12 +107,14 @@ def medium_compute(user_input, history, temperature, top_p, top_k):
     for i, subtask in enumerate(subtasks):
         subtask = subtask.strip()
         if not subtask: continue
+        yield f"[Status] Solving subtask {i+1}/{len(subtasks)}: \"{subtask}...\""
         print(f"[Medium Mode] Solving subtask {i+1}/{len(subtasks)}: \"{subtask}\"...")
         solve_prompt = f'Original overall task: "{user_input}". Current subtask: "{subtask}". Provide a detailed solution or answer for this specific subtask.'
         subtask_result = call_llm(solve_prompt, chat_history_gradio=temp_history_medium, temperature=temperature, top_p=top_p, top_k=top_k)
         subtask_results.append({"subtask": subtask, "result": subtask_result})
         print(f"[Medium Mode] Subtask {i+1} result: Received.")
 
+    yield "[Status] All subtasks solved. Synthesizing final response..."
     print("[Medium Mode] Synthesizing final response...")
     synthesis_prompt = f'Original task: "{user_input}". The task was broken down and the results for each subtask are:\n---\n'
     for i, res in enumerate(subtask_results):
@@ -107,9 +122,10 @@ def medium_compute(user_input, history, temperature, top_p, top_k):
     synthesis_prompt += "Combine these results into a single, coherent, well-formatted final response that directly addresses the original task. Do not just list the subtasks and results; synthesize them."
     final_response = call_llm(synthesis_prompt, temperature=control_temp, top_p=top_p, top_k=top_k)
     print("[Medium Mode] Final response synthesized.")
-    return final_response
+    yield final_response
 
 def high_compute(user_input, history, temperature, top_p, top_k):
+    yield "[Status] Starting task decomposition (Level 1)..."
     print("[High Mode] Starting task decomposition (Level 1)...")
     control_temp = max(0.1, temperature * 0.5)
     decompose_prompt_l1 = f'Original complex task: "{user_input}". Break this down into major high-level stages or components (Level 1 - numbered list). Keep items distinct and logical.'
@@ -117,9 +133,12 @@ def high_compute(user_input, history, temperature, top_p, top_k):
     subtasks_l1 = re.findall(r"^\s*\d+\.\s*(.*)", subtasks_l1_text, re.MULTILINE)
 
     if not subtasks_l1:
+        yield "[Status] Level 1 decomposition failed. Falling back to Medium compute mode..."
         print("[High Mode] Decomposition failed (Level 1). Falling back to Medium Mode...")
-        return medium_compute(user_input, history, temperature, top_p, top_k)
+        yield from medium_compute(user_input, history, temperature, top_p, top_k)
+        return
 
+    yield f"[Status] Task divided into {len(subtasks_l1)} Level 1 stages. Processing stages..."
     print(f"[High Mode] Task divided into {len(subtasks_l1)} Level 1 subtasks.")
     subtasks_l1_results = []
     temp_history_high = history.copy() if history else []
@@ -127,35 +146,53 @@ def high_compute(user_input, history, temperature, top_p, top_k):
     for i, subtask_l1 in enumerate(subtasks_l1):
         subtask_l1 = subtask_l1.strip()
         if not subtask_l1: continue
+        yield f"[Status] Processing Level 1 stage {i+1}/{len(subtasks_l1)}: \"{subtask_l1}...\". Starting mandatory Level 2 decomposition..."
         print(f"[High Mode] Working on Level 1 subtask ({i+1}/{len(subtasks_l1)}): \"{subtask_l1}\"")
-        print(f"[High Mode]   Attempting Level 2 decomposition for: \"{subtask_l1}\"...")
-        decompose_prompt_l2 = f'Current high-level stage (Level 1): "{subtask_l1}". \
-Break THIS stage down into smaller, actionable steps (Level 2 - numbered list). \
-You MUST provide the steps as a numbered list starting with "1.". \
-Even if there is only one step, write "1. {subtask_l1}". \
-Do not use phrases like "No further decomposition needed". Just provide the list.'
+        print(f"[High Mode]   Attempting MANDATORY Level 2 decomposition for: \"{subtask_l1}\"...")
+
+        decompose_prompt_l2 = f'Current high-level stage (Level 1): "{subtask_l1}". Break THIS stage down into smaller, actionable steps (Level 2 - numbered list). You MUST provide the steps as a numbered list starting with "1.". Even if there is only one step, write "1. {subtask_l1}". Do not use phrases like "No further decomposition needed". Just provide the list.'
         subtasks_l2_text = call_llm(decompose_prompt_l2, temperature=control_temp, top_p=top_p, top_k=top_k)
         print(f"[DEBUG High Mode] Raw L2 decomposition text for '{subtask_l1}':\n>>>\n{subtasks_l2_text}\n<<<")
         result_l1_final = ""
         subtasks_l2 = re.findall(r"^\s*\d+\.\s*(.*)", subtasks_l2_text, re.MULTILINE)
 
-        if not subtasks_l2:
-            print(f"[High Mode]   Level 2 decomposition failed or did not return a list for \"{subtask_l1}\". Solving L1 directly...")
-            solve_prompt_l1 = f'Original overall task: "{user_input}". Current high-level stage: "{subtask_l1}". Provide a detailed solution or answer for this stage.'
-            result_l1_final = call_llm(solve_prompt_l1, chat_history_gradio=temp_history_high, temperature=temperature, top_p=top_p, top_k=top_k)
-        else:
-            print(f"[High Mode]   Subtask \"{subtask_l1}\" divided into {len(subtasks_l2)} Level 2 steps.")
-            subtasks_l2_results = []
-            for j, subtask_l2 in enumerate(subtasks_l2):
-                subtask_l2 = subtask_l2.strip()
-                if not subtask_l2: continue
-                print(f"[High Mode]     Solving Level 2 step ({j+1}/{len(subtasks_l2)}): \"{subtask_l2}\"...")
-                solve_prompt_l2 = f'Original task: "{user_input}".\nCurrent Level 1 stage: "{subtask_l1}".\nCurrent Level 2 step: "{subtask_l2}".\nSolve this specific Level 2 step in detail.'
-                result_l2 = call_llm(solve_prompt_l2, chat_history_gradio=temp_history_high, temperature=temperature, top_p=top_p, top_k=top_k)
-                subtasks_l2_results.append({"subtask": subtask_l2, "result": result_l2})
-                print(f"[High Mode]     Level 2 step result ({j+1}): Received.")
 
-            print(f"[High Mode]   Synthesizing Level 2 results for L1 subtask \"{subtask_l1}\"...")
+        if not subtasks_l2:
+            yield f"[Status] Stage {i+1}: L2 decomposition format issue or LLM refusal. Forcing L1 task as single L2 step."
+            print(f"[High Mode]   L2 decomposition failed/refused for \"{subtask_l1}\". Forcing it as a single L2 step.")
+            subtasks_l2 = [subtask_l1.strip()]
+
+
+        yield f"[Status] Stage {i+1} processing {len(subtasks_l2)} Level 2 step(s)..."
+        print(f"[High Mode]   Processing {len(subtasks_l2)} Level 2 step(s) for L1 subtask \"{subtask_l1}\".")
+        subtasks_l2_results = []
+        for j, subtask_l2 in enumerate(subtasks_l2):
+            subtask_l2 = subtask_l2.strip()
+            if not subtask_l2: continue
+            yield f"[Status] Stage {i+1}/{len(subtasks_l1)}, Solving L2 step {j+1}/{len(subtasks_l2)}: \"{subtask_l2}...\""
+            print(f"[High Mode]     Solving Level 2 step ({j+1}/{len(subtasks_l2)}): \"{subtask_l2}\"...")
+
+            if len(subtasks_l2) == 1 and subtask_l2 == subtask_l1:
+
+                solve_prompt_l2 = f'Original task: "{user_input}".\nCurrent Level 1 stage: "{subtask_l1}".\nThis stage could not be broken down further. Solve this specific stage in detail.'
+            else:
+
+                 solve_prompt_l2 = f'Original task: "{user_input}".\nCurrent Level 1 stage: "{subtask_l1}".\nCurrent Level 2 step: "{subtask_l2}".\nSolve this specific Level 2 step in detail.'
+
+            result_l2 = call_llm(solve_prompt_l2, chat_history_gradio=temp_history_high, temperature=temperature, top_p=top_p, top_k=top_k)
+            subtasks_l2_results.append({"subtask": subtask_l2, "result": result_l2})
+            print(f"[High Mode]     Level 2 step result ({j+1}): Received.")
+
+
+        yield f"[Status] Stage {i+1}: Synthesizing results from {len(subtasks_l2)} Level 2 step(s)..."
+        print(f"[High Mode]   Synthesizing Level 2 results for L1 subtask \"{subtask_l1}\"...")
+        if len(subtasks_l2_results) == 1:
+
+
+             result_l1_final = subtasks_l2_results[0]['result']
+             print(f"[High Mode]   Result for \"{subtask_l1}\" (from single L2 step): Received.")
+        else:
+
             synthesis_prompt_l2 = f'The goal for this stage was: "{subtask_l1}". The results for the Level 2 steps taken are:\n---\n'
             for j, res_l2 in enumerate(subtasks_l2_results):
                 synthesis_prompt_l2 += f"{j+1}. Step: {res_l2['subtask']}\n   Result: {res_l2['result']}\n---\n"
@@ -163,8 +200,10 @@ Do not use phrases like "No further decomposition needed". Just provide the list
             result_l1_final = call_llm(synthesis_prompt_l2, temperature=control_temp, top_p=top_p, top_k=top_k)
             print(f"[High Mode]   Result for \"{subtask_l1}\" (synthesized from L2): Received.")
 
+
         subtasks_l1_results.append({"subtask": subtask_l1, "result": result_l1_final})
 
+    yield "[Status] All Level 1 stages processed. Synthesizing final response..."
     print("[High Mode] Synthesizing final response from Level 1 results...")
     final_synthesis_prompt = f'Original complex task: "{user_input}". The task was addressed in the following major stages, with these results:\n---\n'
     for i, res_l1 in enumerate(subtasks_l1_results):
@@ -172,29 +211,66 @@ Do not use phrases like "No further decomposition needed". Just provide the list
     final_synthesis_prompt += "Synthesize all these stage results into a comprehensive, well-structured final answer that directly addresses the original complex task. Ensure coherence and clarity."
     final_response = call_llm(final_synthesis_prompt, temperature=control_temp, top_p=top_p, top_k=top_k)
     print("[High Mode] Final response synthesized.")
-    return final_response
+    yield final_response
+
 
 def chat_interface_logic(message, history, compute_level, temperature, top_p, top_k):
     if history is None:
         history = []
 
-    assistant_response = ""
+    yield history, "", "[Status] Processing request..."
+
+    assistant_response = None
+    compute_function = None
+
     if compute_level == "Low":
-        assistant_response = low_compute(message, history, temperature, top_p, top_k)
+        compute_function = low_compute
     elif compute_level == "Medium":
-        assistant_response = medium_compute(message, history, temperature, top_p, top_k)
+        compute_function = medium_compute
     elif compute_level == "High":
-        assistant_response = high_compute(message, history, temperature, top_p, top_k)
+        compute_function = high_compute
     else:
         assistant_response = "Error: Unknown computation level selected."
+        history.append([message, assistant_response])
+        yield history, "", ""
+        return
 
-    history.append([message, assistant_response])
+    response_generator = compute_function(message, history, temperature, top_p, top_k)
 
-    yield history, ""
+    final_assistant_response = "[Error] No final response generated."
+    current_status = ""
+
+    for response_part in response_generator:
+        if isinstance(response_part, str) and response_part.startswith("[Status]"):
+            current_status = response_part
+            yield history, "", current_status
+        else:
+
+            final_assistant_response = response_part
+
+            break
+    else:
+
+
+        if isinstance(final_assistant_response, str) and final_assistant_response.startswith("[Error]"):
+            print("Warning: Compute function finished without yielding a final answer.")
+
+
+    if not isinstance(final_assistant_response, str):
+        final_assistant_response = f"Error: Unexpected response type from LLM process ({type(final_assistant_response)})."
+        current_status = "[Status] Error encountered"
+
+    history.append([message, final_assistant_response])
+    yield history, "", ""
+
 
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
     gr.Markdown("# Advanced Chat Agent with Computation Levels (Local LLM)")
     gr.Markdown(f"Using endpoint: `{LOCAL_API_ENDPOINT}` with model `{LLM_MODEL}`")
+    if LLM_API_KEY:
+        gr.Markdown("API Key: Loaded from environment variable.")
+    else:
+        gr.Markdown("API Key: Not configured (using endpoint without Authorization header).")
 
     with gr.Row():
         with gr.Column(scale=1):
@@ -219,7 +295,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             clear_btn = gr.ClearButton(value="Clear Chat")
 
         with gr.Column(scale=4):
-            chatbot = gr.Chatbot(label="Chat", height=750, show_copy_button=True)
+            status_display = gr.Markdown("", label="Current Status")
+            chatbot = gr.Chatbot(label="Chat", height=700, show_copy_button=True)
             with gr.Row():
                 chat_input = gr.Textbox(
                     label="Your message",
@@ -230,25 +307,33 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 )
                 submit_btn = gr.Button("Submit", variant="primary", scale=1, min_width=120)
 
-    clear_btn.add(components=[chat_input, chatbot])
+    clear_btn.add(components=[chat_input, chatbot, status_display])
+
+    inputs = [chat_input, chatbot, compute_level_selector, temp_slider, top_p_slider, top_k_slider]
+    outputs = [chatbot, chat_input, status_display]
+
 
     submit_action = submit_btn.click(
         fn=chat_interface_logic,
-        inputs=[chat_input, chatbot, compute_level_selector, temp_slider, top_p_slider, top_k_slider],
-        outputs=[chatbot, chat_input],
-        show_progress="full"
+        inputs=inputs,
+        outputs=outputs,
+
     )
     chat_input.submit(
          fn=chat_interface_logic,
-        inputs=[chat_input, chatbot, compute_level_selector, temp_slider, top_p_slider, top_k_slider],
-        outputs=[chatbot, chat_input],
-        show_progress="full"
+        inputs=inputs,
+        outputs=outputs,
+
     )
 
 if __name__ == "__main__":
     print(f"Launching Gradio interface for local LLM...")
     print(f"Connecting to: {LOCAL_API_ENDPOINT}")
     print(f"Model name used in requests: {LLM_MODEL}")
+    if LLM_API_KEY:
+        print("API Key detected in environment variables.")
+    else:
+        print("API Key not found in environment variables.")
     try:
         base_url = '/'.join(LOCAL_API_ENDPOINT.split('/')[:3])
         response = requests.get(base_url, timeout=5)
