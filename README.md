@@ -21,7 +21,7 @@ The application connects to your specified LLM API endpoint, compatible with the
 
 *   **Local LLM Integration:** Works with your own LLM server (e.g., llama.cpp, Ollama, LM Studio, vLLM with an OpenAI-compatible endpoint).  
 *   **Compute Levels:**  
-    *   **Low:** Direct query to the LLM for a quick response. This is a standard chat mode. Generates N tokens—for example, solving a task may only consume 7,000 tokens.  
+    *   **Low:** Direct query to the LLM for a quick response. This is a standard chat mode. Generates N tokens — for example, solving a task may only consume 700 tokens.  
     *   **Medium:** Single-level task decomposition into subtasks, solving them, and synthesizing the final answer. Suitable for moderately complex queries. The number of generated tokens is approximately 10-15x higher compared to Low Compute (average value, depends on the task): if solving a task in Low Compute took 700 tokens, Medium level would require around 7,000 tokens.  
     *   **High:** Two-level task decomposition (stages → steps), solving individual steps, synthesizing stage results, and generating the final answer. Designed for highly complex and multi-component tasks. The number of generated tokens is approximately 100-150x higher compared to Low Compute: if solving a task in Low Compute took 700 tokens, High level would require around 70,000 tokens.  
 *   **Flexible Compute Adjustment:** You can freely adjust the Compute Level for each query individually. For example, initiate the first query in High Compute, then switch to Low mode, and later use Medium Compute to solve a specific problem mid-chat.
