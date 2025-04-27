@@ -14,9 +14,10 @@ The application connects to your specified LLM API endpoint, compatible with the
 
 *   **Local LLM Integration:** Works with your own LLM server (e.g., llama.cpp, Ollama, LM Studio, vLLM with an OpenAI-compatible endpoint).  
 *   **Compute Levels:**  
-    *   **Low:** Direct query to the LLM for a quick response. Generates N tokens.  
-    *   **Medium:** Single-level task decomposition into subtasks, solving them, and synthesizing the answer. Suitable for moderately complex queries. The number of generated tokens roughly squares compared to Low compute. Generates N² tokens.  
-    *   **High:** Two-level task decomposition (stages → steps), solving individual steps, synthesizing stage results, and generating a final comprehensive answer. Designed for highly complex and multi-component tasks. The number of generated tokens roughly cubes compared to Low compute. Generates N³ tokens. 
+    *   **Low:** Direct query to the LLM for a quick response. This is a standard chat mode. Generates N tokens—for example, solving a task may only consume 7,000 tokens.  
+    *   **Medium:** Single-level task decomposition into subtasks, solving them, and synthesizing the final answer. Suitable for moderately complex queries. The number of generated tokens is approximately 10-15x higher compared to Low Compute (average value, depends on the task): if solving a task in Low Compute took 700 tokens, Medium level would require around 7,000 tokens.  
+    *   **High:** Two-level task decomposition (stages → steps), solving individual steps, synthesizing stage results, and generating the final answer. Designed for highly complex and multi-component tasks. The number of generated tokens is approximately 100-150x higher compared to Low Compute: if solving a task in Low Compute took 700 tokens, High level would require around 70,000 tokens.  
+*   **Flexible Compute Adjustment:** You can freely adjust the Compute Level for each query individually. For example, initiate the first query in High Compute, then switch to Low mode, and later use Medium Compute to solve a specific problem mid-chat.
 
 ## ⚙️ How It Works: Computation Levels  
 
@@ -144,9 +145,9 @@ The core idea is that for complex tasks, a simple direct query to the LLM may no
 
 *   **Подключение к локальной LLM:** Работает с вашим собственным LLM-сервером (например, llama.cpp, Ollama, LM Studio, vLLM с OpenAI-совместимым эндпоинтом).
 *   **Уровни Вычислений:**
-    *   **Low (Низкий):** Прямой запрос к LLM для быстрого ответа. Это совершенно обычный режим чата. Генерируется N-токенов: допустим, на решение задачи ушло всего 700 токенов.
-    *   **Medium (Средний):** Одноуровневая декомпозиция задачи на подзадачи, их решение и последующий синтез ответа. Подходит для умеренно сложных запросов. Количество генерируемых токенов возводится примерно в квадрат по отношению к low compute. Генерируется N^2 токенов: если брать отношение к Low Compute, то на решение этой задачи уйдёт 700^2 = 
-    *   **High (Высокий):** Двухуровневая декомпозиция задачи (этапы -> шаги), решение шагов, синтез результатов этапов и финальный синтез общего ответа. Предназначен для наиболее сложных и многокомпонентных задач. Количество генерируемых токенов возводится примерно в куб по отношению к low compute. Генерируется N^3 токенов
+    *   **Low (Низкий):** Прямой запрос к LLM для быстрого ответа. Это совершенно обычный режим чата. Генерируется N-токенов: допустим, на решение задачи ушло всего 7000 токенов.
+    *   **Medium (Средний):** Одноуровневая декомпозиция задачи на подзадачи, их решение и последующий синтез ответа. Подходит для умеренно сложных запросов. Количество генерируемых токенов примерно в 10-15 раз больше по отношению к Low Compute (среднее значение, всё зависит от задачи): если бы на low compute решение задачи заняло 700 токенов, то на Medium уровне примерно 7000 токенов.
+    *   **High (Высокий):** Двухуровневая декомпозиция задачи (этапы -> шаги), решение шагов, синтез результатов этапов и финальный синтез общего ответа. Предназначен для наиболее сложных и многокомпонентных задач. Количество генерируемых токенов примерно в 100-150 раз больше по отношению к уровню Low: если бы на low compute решение задачи заняло 700 токенов, то на High уровне это заняло бы 70000 токенов.
 *   **Свободная регулировка Compute:** Вы можете свободно регулировать Compute Level для каждого вашего запроса отдельно. Например, первый запрос инициировать на High Compute, затем поработать в режиме Low, и в середине чата решить сделать Medium Compute для решения определённой проблемы.
 
 ## ⚙️ Как это работает: Уровни Вычислений
