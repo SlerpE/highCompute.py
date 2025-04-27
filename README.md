@@ -12,11 +12,11 @@ The application connects to your specified LLM API endpoint, compatible with the
 
 ## 🌟 Key Features  
 
-*   **Connect to a local LLM:** Works with your own LLM server (e.g., llama.cpp, Ollama, LM Studio, vLLM with an OpenAI-compatible endpoint).  
-*   **Computation Levels:**  
-    *   **Low:** Direct query to the LLM for a quick response.  
-    *   **Medium:** Single-level task decomposition into subtasks, solving them, and synthesizing the final answer. Suitable for moderately complex queries.  
-    *   **High:** Two-level task decomposition (stages → steps), solving steps, synthesizing stage results, and generating a final comprehensive answer. Designed for the most complex and multi-component tasks.  
+*   **Local LLM Integration:** Works with your own LLM server (e.g., llama.cpp, Ollama, LM Studio, vLLM with an OpenAI-compatible endpoint).  
+*   **Compute Levels:**  
+    *   **Low:** Direct query to the LLM for a quick response. Generates N tokens.  
+    *   **Medium:** Single-level task decomposition into subtasks, solving them, and synthesizing the answer. Suitable for moderately complex queries. The number of generated tokens roughly squares compared to Low compute. Generates N² tokens.  
+    *   **High:** Two-level task decomposition (stages → steps), solving individual steps, synthesizing stage results, and generating a final comprehensive answer. Designed for highly complex and multi-component tasks. The number of generated tokens roughly cubes compared to Low compute. Generates N³ tokens. 
 
 ## ⚙️ How It Works: Computation Levels  
 
@@ -144,9 +144,9 @@ The core idea is that for complex tasks, a simple direct query to the LLM may no
 
 *   **Подключение к локальной LLM:** Работает с вашим собственным LLM-сервером (например, llama.cpp, Ollama, LM Studio, vLLM с OpenAI-совместимым эндпоинтом).
 *   **Уровни Вычислений:**
-    *   **Low (Низкий):** Прямой запрос к LLM для быстрого ответа.
-    *   **Medium (Средний):** Одноуровневая декомпозиция задачи на подзадачи, их решение и последующий синтез ответа. Подходит для умеренно сложных запросов.
-    *   **High (Высокий):** Двухуровневая декомпозиция задачи (этапы -> шаги), решение шагов, синтез результатов этапов и финальный синтез общего ответа. Предназначен для наиболее сложных и многокомпонентных задач.
+    *   **Low (Низкий):** Прямой запрос к LLM для быстрого ответа. Генерируется N-токенов
+    *   **Medium (Средний):** Одноуровневая декомпозиция задачи на подзадачи, их решение и последующий синтез ответа. Подходит для умеренно сложных запросов. Количество генерируемых токенов возводится примерно в квадрат по отношению к low compute. Генерируется N^2 токенов.
+    *   **High (Высокий):** Двухуровневая декомпозиция задачи (этапы -> шаги), решение шагов, синтез результатов этапов и финальный синтез общего ответа. Предназначен для наиболее сложных и многокомпонентных задач. Количество генерируемых токенов возводится примерно в куб по отношению к low compute. Генерируется N^3 токенов
 
 ## ⚙️ Как это работает: Уровни Вычислений
 
