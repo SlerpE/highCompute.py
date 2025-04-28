@@ -1,3 +1,5 @@
-gradio
+gradio==4.44.1
+pydantic==2.10.6
+pydantic_core==2.27.2
 requests
 python-dotenv
