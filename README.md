@@ -53,7 +53,7 @@ The core idea is that for complex tasks, a simple direct query to the LLM may no
 
 ## 📋 Prerequisites  
 
-*   **Python 3.11+**  
+*   **Python 3.11**  
 *   **pip** (Python package manager)  
 *   **A working LLM server:** You need an accessible HTTP server with an LLM that provides an API compatible with [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat/create).  
     *   Examples of such servers:  
